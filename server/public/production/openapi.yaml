@@ -1,0 +1,241 @@
+openapi: 3.0.0
+info:
+  title: Codeulator API
+  version: 1.0.4
+paths:
+  /explore:
+    post:
+      operationId: readDirectory
+      summary: Explore a directory tree.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                liveShareUrl:
+                  type: string
+                  description: URL of the VS Live Share session.
+                path:
+                  type: string
+                  description: Absolute path to the target file or directory.
+                analysisGoal:
+                  type: string
+                  description: Description of the analysis goal, 10-20 words. Required.
+                depth:
+                  type: integer
+                  description: >-
+                    Specifies the number of directory levels to return. 1 for target directory only
+                    (the default), 2 to include immediate children, etc.
+              required:
+                - analysisGoal
+      responses:
+        200:
+          description: Tree of directory entries.
+          content:
+            application/json:
+              schema:
+                type: object
+        400:
+          description: Invalid input parameters.
+        500:
+          description: System error.
+  /read:
+    post:
+      operationId: readFile
+      summary: Read file contents.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                liveShareUrl:
+                  type: string
+                  description: URL of the VS Live Share session.
+                path:
+                  type: string
+                  description: >-
+                    Absolute path to the target file or directory. Special values: specify
+                    "terminal" to access recent terminal output, or "selection" for the user's
+                    selected text.
+                startLine:
+                  type: integer
+                  description: Line number to start reading at. Used to read part of a large file.
+                endLine:
+                  type: integer
+                  description: Line number to stop reading at. Used to read part of a large file.
+                allowSquashing:
+                  type: boolean
+                  description: >-
+                    If the response is very large, the system might 'squash' it by replacing parts
+                    of the code with ellipses. To prevent that behavior, set this to false.
+                analysisGoal:
+                  type: string
+                  description: Description of the analysis goal, 10-20 words. Required.
+              required:
+                - path
+                - analysisGoal
+      responses:
+        200:
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: File contents.
+        400:
+          description: Invalid input parameters.
+        500:
+          description: System error.
+  /edit/create:
+    post:
+      operationId: createDraft
+      description: >-
+        Prepares a set of file changes, without applying them yet. Returns a diff for validation
+        purposes. If the diff contains errors, the client should fix the errors and try again.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                liveShareUrl:
+                  type: string
+                  description: URL of the VS Live Share session.
+                path:
+                  type: string
+                  description: The absolute path of the file to be edited.
+                deletionMode:
+                  type: string
+                  enum:
+                    - pair
+                  description: >-
+                    Deletion mode. Only 'pair' is supported. In this mode, deletions will include
+                    the lines containing deleteStartText, deleteEndText, and all lines in between.
+                operations:
+                  type: array
+                  description: A sequence of edit operations to perform on the file.
+                  items:
+                    type: object
+                    properties:
+                      order:
+                        type: integer
+                        description: Order of operations. Operations are executed in ascending order.
+                      op:
+                        type: string
+                        description: >-
+                          Operation type: "insert" adds `newCode` at the selected position; "replace" replaces
+                          `anchorText` with `newCode`; "deleteLines" deletes a range of lines.
+                        enum:
+                          - insert
+                          - replace
+                          - deleteLines
+                      params:
+                        type: object
+                        properties:
+                          anchorText:
+                            type: string
+                          newCode:
+                            type: string
+                          relativePosition:
+                            type: string
+                            enum:
+                              - linesAfter
+                              - linesBefore
+                              - after
+                              - before
+                          indentSpaces:
+                            type: number
+                          indentTabs:
+                            type: number
+                          deleteStartText:
+                            type: string
+                          deleteEndText:
+                            type: string
+                dependsOn:
+                  type: array
+                  items:
+                    type: string
+                  description: A list of previous draft IDs that this draft depends on.
+                create:
+                  type: boolean
+                  description: >-
+                    If true, an empty file will be created. Intermediate directories are created
+                    implicitly.
+              required:
+                - path
+      responses:
+        201:
+          description: A draft was generated.
+        202:
+          description: A draft was generated with warnings that should be fixed if possible.
+        400:
+          description: Invalid input parameters.
+        '5XX':
+          description: System error.
+  /edit/apply:
+   post:
+      operationId: applyDraft
+      summary: Apply a drafted set of changes to the original or new file.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                liveShareUrl:
+                  type: string
+                  description: URL of the VS Live Share session.
+                path:
+                  type: string
+                  description: Absolute path to the file.
+                draftID:
+                  type: string
+                  description: Draft ID.
+                ignoreWarnings:
+                  type: boolean
+                  description: Must be true to apply a draft with warnings.
+              required:
+                - path
+                - draftID
+  /diagnostics:
+    post:
+      operationId: getDiagnostics
+      summary: Get diagnostic messages for a file.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                liveShareUrl:
+                  type: string
+                  description: URL of the VS Live Share session.
+                path:
+                  type: string
+                  description: Absolute path to the file.
+              required:
+                - path
+  /info:
+    get:
+      operationId: productInfo
+      summary: Get up-to-date information about Codeulator.
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+          description: Description of the information sought, 10-20 words.
+      responses:
+        200:
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Requested information.

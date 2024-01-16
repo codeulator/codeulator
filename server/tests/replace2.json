@@ -1,0 +1,39 @@
+{
+    "name": "replace2",
+    "requests": [
+        {
+            "url": "/edit/create",
+            "params": {
+                "liveShareUrl": "https://prod.liveshare.vsengsaas.visualstudio.com/join?93F638E5DAB1CF9B6AF721C4D16FA1F67AF0",
+                "path": "server/src/analyze.test.ts",
+                "operations": [
+                    {
+                        "order": 1,
+                        "op": "replace",
+                        "params": {
+                            "anchorText": "1: line1\n2: line2222",
+                            "newCode": "1: line1\n2: line2",
+                            "relativePosition": "after"
+                        }
+                    }
+                ],
+                "allowStaleEdits": true
+            },
+            "statusCode": "201"
+        },
+        {
+            "url": "/edit/apply",
+            "params": {
+                "path": "server/src/analyze.test.ts",
+                "draftID": "1"
+            },
+            "statusCode": "200"
+        }
+    ],
+    "fsBefore": {
+        "server/src/analyze.test.ts": "import { FileType } from './filesystem';\nimport {\n    analyzeFile,\n    analyzeDirectory,\n} from './analyze';\n\n        const expected: AnalyzeFileResult = {\n            data: '1: line1\n2: line2222',\n        };\n"
+    },
+    "fsAfter": {
+        "server/src/analyze.test.ts": "import { FileType } from './filesystem';\nimport {\n    analyzeFile,\n    analyzeDirectory,\n} from './analyze';\n\n        const expected: AnalyzeFileResult = {\n            data: '1: line1\n2: line2',\n        };\n"
+    }
+}
